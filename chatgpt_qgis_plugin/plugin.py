@@ -60,7 +60,10 @@ class GeoGPTPlugin:
         if not self.dock_widget:
             self.dock_widget = GeoGPTDockWidget(self.iface.mainWindow())
             self.dock_widget.run_query_signal.connect(self.process_query)
-            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock_widget)
+            right_dock = getattr(Qt, 'RightDockWidgetArea', None)
+            if right_dock is None and hasattr(Qt, 'DockWidgetArea'):
+                right_dock = getattr(Qt.DockWidgetArea, 'RightDockWidgetArea', 2)
+            self.iface.addDockWidget(right_dock or 2, self.dock_widget)
 
         self.dock_widget.show()
         self.dock_widget.raise_()

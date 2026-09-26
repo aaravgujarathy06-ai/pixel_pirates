@@ -6,6 +6,7 @@ PyQt UI Dock Widget for Knowbuild 2.0 (GeoGPT for QGIS).
 Provides an interactive sidebar in QGIS with query inputs, API key settings,
 datacube directory path selection, execution triggers, structured spatial metrics,
 interactive visual charts, and AI solution recommendations.
+Compatible with both QGIS 3 (PyQt5) and QGIS 4 (PyQt6 / PySide6).
 """
 
 import os
@@ -53,6 +54,23 @@ except ImportError:
         QScrollArea
     )
 
+# Safe enum lookup helpers for PyQt5 / PyQt6 compatibility in QGIS 3 & 4
+def get_enum(obj, attr1, attr2=None):
+    if hasattr(obj, attr1):
+        return getattr(obj, attr1)
+    if attr2 and hasattr(obj, attr2):
+        nested = getattr(obj, attr2)
+        if hasattr(nested, attr1):
+            return getattr(nested, attr1)
+    return 0
+
+LEFT_DOCK = get_enum(Qt, 'LeftDockWidgetArea', 'DockWidgetArea')
+RIGHT_DOCK = get_enum(Qt, 'RightDockWidgetArea', 'DockWidgetArea')
+ALIGN_CENTER = get_enum(Qt, 'AlignCenter', 'AlignmentFlag')
+ECHO_PASSWORD = get_enum(QLineEdit, 'Password', 'EchoMode')
+ITEM_EDITABLE = get_enum(Qt, 'ItemIsEditable', 'ItemFlag')
+RESIZE_STRETCH = get_enum(QHeaderView, 'Stretch', 'ResizeMode')
+
 # Try importing Matplotlib for embedding inline charts inside PyQt
 try:
     import matplotlib
@@ -60,7 +78,7 @@ try:
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.figure import Figure
     HAS_MATPLOTLIB = True
-except ImportError:
+except Exception:
     HAS_MATPLOTLIB = False
 
 
@@ -69,7 +87,7 @@ class GeoGPTDockWidget(QDockWidget):
 
     def __init__(self, parent=None):
         super().__init__("GeoGPT - Natural Language Geospatial AI", parent)
-        self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.setAllowedAreas(LEFT_DOCK | RIGHT_DOCK)
         self.init_ui()
 
     def init_ui(self):
@@ -109,7 +127,7 @@ class GeoGPTDockWidget(QDockWidget):
         config_layout = QFormLayout()
 
         self.api_key_input = QLineEdit()
-        self.api_key_input.setEchoMode(QLineEdit.Password)
+        self.api_key_input.setEchoMode(ECHO_PASSWORD)
         self.api_key_input.setPlaceholderText("Optional: sk-... (Uses Fallback Parser if empty)")
         
         # Data cube path selector
@@ -176,7 +194,7 @@ class GeoGPTDockWidget(QDockWidget):
 
         self.stats_table = QTableWidget(0, 2)
         self.stats_table.setHorizontalHeaderLabels(["Metric", "Value"])
-        self.stats_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.stats_table.horizontalHeader().setSectionResizeMode(RESIZE_STRETCH)
         self.stats_table.setStyleSheet("QTableWidget { font-size: 11px; }")
         self.stats_table.setMinimumHeight(140)
         
@@ -191,7 +209,7 @@ class GeoGPTDockWidget(QDockWidget):
         
         self.chart_placeholder = QLabel("Run a query to generate visual chart.")
         self.chart_placeholder.setStyleSheet("color: #94a3b8; font-style: italic;")
-        self.chart_placeholder.setAlignment(Qt.AlignCenter)
+        self.chart_placeholder.setAlignment(ALIGN_CENTER)
         self.chart_layout.addWidget(self.chart_placeholder)
         
         chart_group.setLayout(self.chart_layout)
@@ -255,8 +273,8 @@ class GeoGPTDockWidget(QDockWidget):
             self.stats_table.insertRow(row)
             item_key = QTableWidgetItem(str(metric))
             item_val = QTableWidgetItem(str(val))
-            item_key.setFlags(item_key.flags() ^ Qt.ItemIsEditable)
-            item_val.setFlags(item_val.flags() ^ Qt.ItemIsEditable)
+            item_key.setFlags(item_key.flags() ^ ITEM_EDITABLE)
+            item_val.setFlags(item_val.flags() ^ ITEM_EDITABLE)
             self.stats_table.setItem(row, 0, item_key)
             self.stats_table.setItem(row, 1, item_val)
 
@@ -283,7 +301,6 @@ class GeoGPTDockWidget(QDockWidget):
                 fig.patch.set_facecolor('#f8fafc')
 
                 labels = ['Veg Retained', 'Veg Lost', 'Built-Up / Bare']
-                # Parse metrics from stats or default reasonable breakdown
                 loss_val = 6.0
                 try:
                     pct_str = stats.get("Percentage Loss", "6.0%").replace("%", "")
@@ -318,5 +335,5 @@ class GeoGPTDockWidget(QDockWidget):
         # Fallback simple visual bar container
         fallback_lbl = QLabel("🟩 Retained Veg: 94.0%  |  🟥 Veg Lost: 6.0%")
         fallback_lbl.setStyleSheet("font-weight: bold; color: #1e293b; font-size: 11px;")
-        fallback_lbl.setAlignment(Qt.AlignCenter)
+        fallback_lbl.setAlignment(ALIGN_CENTER)
         self.chart_layout.addWidget(fallback_lbl)
