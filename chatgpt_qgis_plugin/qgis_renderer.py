@@ -4,7 +4,7 @@ qgis_renderer.py
 PyQGIS Canvas Renderer for Knowbuild 2.0.
 
 Loads generated GeoTIFF raster result files into the active QGIS map canvas,
-configures single-band pseudo-color raster styling/color ramps, and triggers canvas refresh.
+configures single-band pseudo-color raster styling/color ramps, opacity, and triggers canvas refresh.
 """
 
 class QGISRenderer:
@@ -16,7 +16,7 @@ class QGISRenderer:
 
     def add_raster_layer(self, file_path: str, layer_name: str, is_loss_layer: bool = True):
         """
-        Adds raster file to QGIS layer tree with styled color ramp.
+        Adds raster file to QGIS layer tree with styled color ramp and opacity.
         """
         try:
             from qgis.core import (
@@ -28,7 +28,7 @@ class QGISRenderer:
             )
             from qgis.PyQt.QtGui import QColor
         except ImportError:
-            print(f"[GeoGPT QGISRenderer] Notice: PyQGIS modules not available outside QGIS environment. Layer path: {file_path}")
+            print(f"[GeoGPT QGISRenderer] PyQGIS modules unavailable outside QGIS environment. Path: {file_path}")
             return None
 
         # Create QGIS Raster Layer
@@ -36,24 +36,26 @@ class QGISRenderer:
         if not layer.isValid():
             raise RuntimeError(f"Failed to load raster layer from path: {file_path}")
 
-        # Configure Single Band Pseudocolor Styling
+        # Configure Single Band Pseudocolor Shader
         shader = QgsRasterShader()
         color_ramp_shader = QgsColorRampShader()
         color_ramp_shader.setColorRampType(QgsColorRampShader.Interpolated)
 
         if is_loss_layer:
-            # Transparent for 0 (no loss), Bright Red for 1 (loss)
+            # Multi-class Gradient for Change Detection (Transparent -> Orange -> Red -> Dark Crimson)
             items = [
-                QgsColorRampShader.ColorRampItem(0.0, QColor(0, 0, 0, 0), "No Change"),
-                QgsColorRampShader.ColorRampItem(1.0, QColor(230, 25, 25, 220), "Vegetation Lost")
+                QgsColorRampShader.ColorRampItem(0.00, QColor(0, 0, 0, 0), "No Change"),
+                QgsColorRampShader.ColorRampItem(0.15, QColor(255, 170, 0, 180), "Moderate Loss"),
+                QgsColorRampShader.ColorRampItem(0.35, QColor(230, 25, 25, 220), "High Loss"),
+                QgsColorRampShader.ColorRampItem(0.60, QColor(140, 0, 25, 255), "Severe Loss")
             ]
         else:
-            # NDVI Color Ramp: Red (low vegetation) -> Yellow -> Green (dense vegetation)
+            # 4-Class High Contrast NDVI Ramp: Navy Blue -> Urban Gray -> Lime Green -> Emerald Forest
             items = [
-                QgsColorRampShader.ColorRampItem(-1.0, QColor(0, 0, 255, 255), "Water / Snow"),
-                QgsColorRampShader.ColorRampItem(0.0, QColor(200, 200, 200, 255), "Bare Soil / Urban"),
-                QgsColorRampShader.ColorRampItem(0.3, QColor(255, 255, 100, 255), "Moderate Veg"),
-                QgsColorRampShader.ColorRampItem(0.8, QColor(0, 150, 0, 255), "Dense Vegetation")
+                QgsColorRampShader.ColorRampItem(-0.50, QColor(20, 80, 190, 255), "Water Bodies"),
+                QgsColorRampShader.ColorRampItem(0.10, QColor(180, 180, 180, 255), "Built-Up / Bare Soil"),
+                QgsColorRampShader.ColorRampItem(0.35, QColor(160, 225, 60, 255), "Sparse Vegetation"),
+                QgsColorRampShader.ColorRampItem(0.75, QColor(10, 130, 45, 255), "Dense Canopy Forest")
             ]
 
         color_ramp_shader.setColorRampItemList(items)
@@ -61,6 +63,7 @@ class QGISRenderer:
 
         renderer = QgsSingleBandPseudoColorRenderer(layer.dataProvider(), 1, shader)
         layer.setRenderer(renderer)
+        layer.setOpacity(0.85) # Semi-transparent layer blending
 
         # Add layer to QGIS map project
         QgsProject.instance().addMapLayer(layer)

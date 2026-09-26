@@ -140,8 +140,15 @@ class LLMParser:
 
     def generate_solution(self, query: str, stats: dict) -> str:
         """
-        Generates structured AI solution and urban policy recommendation based on spatial analysis results.
+        Generates structured AI solution and urban policy recommendation.
+        Calls live OpenAI API if api_key is set, or returns rich template if offline/no-key.
         """
+        if self.api_key and self.api_key.strip():
+            try:
+                return self._generate_solution_openai(query, stats)
+            except Exception as e:
+                print(f"[GeoGPT LLMParser] API solution call failed ({e}). Using template fallback.")
+
         region = stats.get("Region", "Target Region")
         timeframe = stats.get("Timeframe", "2015-2020")
         loss_area = stats.get("Vegetation Area Lost", "N/A")
@@ -159,3 +166,39 @@ class LLMParser:
 3. <b>Urban Policy:</b> Implement mandatory green roofing incentives for new developments.
 """
         return solution_md
+
+    def _generate_solution_openai(self, query: str, stats: dict) -> str:
+        import urllib.request
+
+        prompt = f"""
+Given the following satellite spatial analysis results:
+User Query: "{query}"
+Stats: {json.dumps(stats, indent=2)}
+
+Write a concise, professional HTML summary (3-4 paragraphs) with:
+1. <b>[AI Key Findings]</b> summarizing the numerical spatial findings.
+2. <b>[Recommended Solutions & Action Plan]</b> giving 3 actionable urban planning / policy recommendations based on the findings.
+Use HTML tags (<b>, <br/>) for clean formatting. Keep it brief.
+"""
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key.strip()}"
+        }
+        payload = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {"role": "system", "content": "You are an expert geospatial environmental urban analyst."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3
+        }
+
+        req = urllib.request.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            res_data = json.loads(resp.read().decode("utf-8"))
+            return res_data["choices"][0]["message"]["content"]
