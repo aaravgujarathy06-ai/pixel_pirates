@@ -78,20 +78,32 @@ class GeoEngine:
         else:
             pixel_area_m2 = (res_x * 111320) * (res_y * 111320) if res_x < 1 else res_x * res_y
 
+        # Calculate exact pixel statistics for dynamic land cover chart
+        total_px = float(ndvi_2015.size)
+        veg_2015_px = float(np.sum(ndvi_2015 > 0.3))
+        veg_2020_px = float(np.sum(ndvi_2020 > 0.3))
+
+        retained_px = float(np.sum((ndvi_2015 > 0.3) & (ndvi_2020 > 0.3)))
+        loss_px = float(np.sum((ndvi_2015 > 0.3) & (ndvi_2020 <= 0.3)))
+        gain_px = float(np.sum((ndvi_2015 <= 0.3) & (ndvi_2020 > 0.3)))
+        builtup_px = float(np.sum((ndvi_2015 <= 0.3) & (ndvi_2020 <= 0.3)))
+
+        pct_retained = round((retained_px / total_px) * 100.0, 1)
+        pct_loss = round((loss_px / total_px) * 100.0, 1)
+        pct_gain = round((gain_px / total_px) * 100.0, 1)
+        pct_builtup = round((builtup_px / total_px) * 100.0, 1)
+        pct_veg_2015 = round((veg_2015_px / total_px) * 100.0, 1)
+        pct_veg_2020 = round((veg_2020_px / total_px) * 100.0, 1)
+
         # Perform requested operation
         output_dir = tempfile.gettempdir()
         
         if operation == "vegetation_loss":
             change_ndvi = ndvi_2020 - ndvi_2015
             loss_mask = (change_ndvi < -threshold).astype(np.float32)
-
-            # Calculate summary metrics
-            total_pixels = loss_mask.size
             loss_pixels = np.sum(loss_mask > 0)
-            veg_pixels_2015 = np.sum(ndvi_2015 > 0.3)
-            
             loss_area_sq_km = (loss_pixels * pixel_area_m2) / 1e6
-            pct_change = (loss_pixels / max(veg_pixels_2015, 1)) * 100.0
+            pct_change = (loss_pixels / max(veg_2015_px, 1.0)) * 100.0
 
             out_path = os.path.join(output_dir, f"{region}_vegetation_loss_{start_year}_{end_year}.tif")
             
@@ -114,7 +126,11 @@ class GeoEngine:
                     "Vegetation Area Lost": f"{loss_area_sq_km:.2f} sq km",
                     "Percentage Loss": f"{pct_change:.1f}%",
                     "Loss Pixel Count": int(loss_pixels),
-                    "Threshold Used": f"NDVI drop > {threshold}"
+                    "Threshold Used": f"NDVI drop > {threshold}",
+                    "Chart Type": "loss",
+                    "Chart Retained Pct": pct_retained,
+                    "Chart Loss Pct": pct_loss,
+                    "Chart Builtup Pct": pct_builtup
                 }
             }
 
@@ -139,7 +155,10 @@ class GeoEngine:
                     "Year": start_year,
                     "Mean NDVI": f"{mean_ndvi:.3f}",
                     "Min NDVI": f"{float(np.min(ndvi_2015)):.3f}",
-                    "Max NDVI": f"{float(np.max(ndvi_2015)):.3f}"
+                    "Max NDVI": f"{float(np.max(ndvi_2015)):.3f}",
+                    "Chart Type": "ndvi",
+                    "Chart Veg Pct": pct_veg_2015,
+                    "Chart NonVeg Pct": round(100.0 - pct_veg_2015, 1)
                 }
             }
 
@@ -164,7 +183,10 @@ class GeoEngine:
                     "Year": end_year,
                     "Mean NDVI": f"{mean_ndvi:.3f}",
                     "Min NDVI": f"{float(np.min(ndvi_2020)):.3f}",
-                    "Max NDVI": f"{float(np.max(ndvi_2020)):.3f}"
+                    "Max NDVI": f"{float(np.max(ndvi_2020)):.3f}",
+                    "Chart Type": "ndvi",
+                    "Chart Veg Pct": pct_veg_2020,
+                    "Chart NonVeg Pct": round(100.0 - pct_veg_2020, 1)
                 }
             }
 
@@ -192,7 +214,11 @@ class GeoEngine:
                     "Region": region.capitalize(),
                     "Timeframe": f"{start_year} - {end_year}",
                     "Vegetation Area Gained": f"{gain_area_sq_km:.2f} sq km",
-                    "Gain Pixel Count": int(gain_pixels)
+                    "Gain Pixel Count": int(gain_pixels),
+                    "Chart Type": "gain",
+                    "Chart Retained Pct": pct_retained,
+                    "Chart Gain Pct": pct_gain,
+                    "Chart Builtup Pct": pct_builtup
                 }
             }
 

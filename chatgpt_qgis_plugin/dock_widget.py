@@ -287,30 +287,44 @@ class GeoGPTDockWidget(QDockWidget):
         self.set_status("Completed! Layer & visual insights added.")
 
     def _render_chart(self, stats: dict):
-        """Renders visual pie chart of land cover change."""
+        """Renders dynamic visual pie chart of land cover change."""
         # Clear previous chart elements
         for i in reversed(range(self.chart_layout.count())):
             w = self.chart_layout.itemAt(i).widget()
             if w:
                 w.deleteLater()
 
+        chart_type = stats.get("Chart Type", "loss")
+
+        if chart_type == "loss":
+            ret_pct = stats.get("Chart Retained Pct", 28.0)
+            loss_pct = stats.get("Chart Loss Pct", 6.0)
+            built_pct = stats.get("Chart Builtup Pct", 66.0)
+            labels = ['Veg Retained', 'Veg Lost', 'Built-Up / Bare']
+            sizes = [ret_pct, loss_pct, built_pct]
+            colors = ['#22c55e', '#ef4444', '#94a3b8']
+            explode = (0, 0.1, 0)
+        elif chart_type == "gain":
+            ret_pct = stats.get("Chart Retained Pct", 28.0)
+            gain_pct = stats.get("Chart Gain Pct", 4.0)
+            built_pct = stats.get("Chart Builtup Pct", 68.0)
+            labels = ['Veg Retained', 'Veg Gain', 'Built-Up / Bare']
+            sizes = [ret_pct, gain_pct, built_pct]
+            colors = ['#22c55e', '#3b82f6', '#94a3b8']
+            explode = (0, 0.1, 0)
+        else: # ndvi
+            veg_pct = stats.get("Chart Veg Pct", 34.0)
+            nonveg_pct = stats.get("Chart NonVeg Pct", 66.0)
+            labels = ['Vegetation', 'Non-Vegetated']
+            sizes = [veg_pct, nonveg_pct]
+            colors = ['#22c55e', '#94a3b8']
+            explode = (0.05, 0)
+
         if HAS_MATPLOTLIB:
             try:
                 fig = Figure(figsize=(3.5, 2.2), dpi=100)
                 ax = fig.add_subplot(111)
                 fig.patch.set_facecolor('#f8fafc')
-
-                labels = ['Veg Retained', 'Veg Lost', 'Built-Up / Bare']
-                loss_val = 6.0
-                try:
-                    pct_str = stats.get("Percentage Loss", "6.0%").replace("%", "")
-                    loss_val = float(pct_str)
-                except ValueError:
-                    pass
-
-                sizes = [max(40.0 - loss_val, 5.0), loss_val, 60.0]
-                colors = ['#22c55e', '#ef4444', '#94a3b8']
-                explode = (0, 0.1, 0)
 
                 wedges, texts, autotexts = ax.pie(
                     sizes,
@@ -333,7 +347,8 @@ class GeoGPTDockWidget(QDockWidget):
                 print(f"[GeoGPT Chart Error] {e}")
 
         # Fallback simple visual bar container
-        fallback_lbl = QLabel("🟩 Retained Veg: 94.0%  |  🟥 Veg Lost: 6.0%")
+        txt = " | ".join([f"{l}: {s}%" for l, s in zip(labels, sizes)])
+        fallback_lbl = QLabel(txt)
         fallback_lbl.setStyleSheet("font-weight: bold; color: #1e293b; font-size: 11px;")
         fallback_lbl.setAlignment(ALIGN_CENTER)
         self.chart_layout.addWidget(fallback_lbl)
