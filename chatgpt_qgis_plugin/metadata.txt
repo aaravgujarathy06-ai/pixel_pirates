@@ -1,0 +1,14 @@
+[general]
+name=GeoGPT - LLM Geospatial Analysis
+qgisMinimumVersion=3.0
+description=Natural language driven satellite analysis plugin for QGIS (NDVI & Change Detection)
+version=1.0.0
+author=Team ALT-F4
+email=contact@example.com
+about=Translates plain English queries into spatial analysis plans and renders resulting raster layers with summary metrics.
+tracker=https://github.com/example/chatgpt-qgis/issues
+repository=https://github.com/example/chatgpt-qgis
+tags=llm, raster, ndvi, change detection, pyqgis, geospatial
+homepage=https://github.com/example/chatgpt-qgis
+experimental=False
+deprecated=False
