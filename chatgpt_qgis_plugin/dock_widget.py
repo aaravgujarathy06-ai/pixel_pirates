@@ -336,8 +336,17 @@ class GeoGPTDockWidget(QDockWidget):
             item_val.setFlags(item_val.flags() ^ ITEM_EDITABLE)
             
             # Format value styling
-            item_key.setStyleSheet("font-weight: bold; color: #334155;")
-            item_val.setStyleSheet("color: #0284c7; font-weight: bold;")
+            try:
+                from PyQt5.QtGui import QColor, QFont
+            except ImportError:
+                from qgis.PyQt.QtGui import QColor, QFont
+            
+            font = QFont()
+            font.setBold(True)
+            item_key.setFont(font)
+            item_key.setForeground(QColor("#334155"))
+            item_val.setFont(font)
+            item_val.setForeground(QColor("#0284c7"))
             
             self.stats_table.setItem(row, 0, item_key)
             self.stats_table.setItem(row, 1, item_val)
