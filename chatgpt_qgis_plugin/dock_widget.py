@@ -372,20 +372,20 @@ class GeoGPTDockWidget(QDockWidget):
             ret_pct = stats.get("Chart Retained Pct", 28.0)
             loss_pct = stats.get("Chart Loss Pct", 6.0)
             built_pct = stats.get("Chart Builtup Pct", 66.0)
-            labels = ['Retained', 'Loss', 'Built-Up']
+            labels = ['Veg Retained', 'Veg Loss', 'Built-Up Land']
             sizes = [ret_pct, loss_pct, built_pct]
             colors = ['#10b981', '#f43f5e', '#64748b']
         elif chart_type == "gain":
             ret_pct = stats.get("Chart Retained Pct", 28.0)
             gain_pct = stats.get("Chart Gain Pct", 4.0)
             built_pct = stats.get("Chart Builtup Pct", 68.0)
-            labels = ['Retained', 'Gain', 'Built-Up']
+            labels = ['Veg Retained', 'Veg Gain', 'Built-Up Land']
             sizes = [ret_pct, gain_pct, built_pct]
             colors = ['#10b981', '#3b82f6', '#64748b']
         else: # ndvi
             veg_pct = stats.get("Chart Veg Pct", 34.0)
             nonveg_pct = stats.get("Chart NonVeg Pct", 66.0)
-            labels = ['Vegetation', 'Non-Veg']
+            labels = ['Vegetation Cover', 'Built-Up & Soil']
             sizes = [veg_pct, nonveg_pct]
             colors = ['#10b981', '#64748b']
 
