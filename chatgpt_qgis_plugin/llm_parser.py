@@ -97,10 +97,13 @@ class LLMParser:
         start_year = min(years) if years else 2015
         end_year = max(years) if len(years) > 1 else 2020
 
-        # Determine operation
-        if "loss" in query_lower or "lost" in query_lower or "decrease" in query_lower:
+        # Determine operation using broad keyword matchers
+        loss_keywords = ["loss", "lost", "decrease", "deforestation", "degradation", "sprawl", "encroachment", "cut", "drop", "damage", "reduction"]
+        gain_keywords = ["gain", "gained", "increase", "growth", "reforestation", "afforestation", "greening", "planting", "recovery", "expansion"]
+        
+        if any(k in query_lower for k in loss_keywords):
             operation = "vegetation_loss"
-        elif "gain" in query_lower or "increase" in query_lower or "growth" in query_lower:
+        elif any(k in query_lower for k in gain_keywords):
             operation = "vegetation_gain"
         elif "2015" in query_lower and "2020" not in query_lower:
             operation = "ndvi_2015"
