@@ -54,22 +54,21 @@ except ImportError:
         QScrollArea
     )
 
-# Safe enum lookup helpers for PyQt5 / PyQt6 compatibility in QGIS 3 & 4
-def get_enum(obj, attr1, attr2=None):
-    if hasattr(obj, attr1):
-        return getattr(obj, attr1)
-    if attr2 and hasattr(obj, attr2):
-        nested = getattr(obj, attr2)
-        if hasattr(nested, attr1):
-            return getattr(nested, attr1)
-    return 0
+def get_enum(obj, attr_name, enum_class_name=None, default=0):
+    if enum_class_name and hasattr(obj, enum_class_name):
+        enum_cls = getattr(obj, enum_class_name)
+        if hasattr(enum_cls, attr_name):
+            return getattr(enum_cls, attr_name)
+    if hasattr(obj, attr_name):
+        return getattr(obj, attr_name)
+    return default
 
-LEFT_DOCK = get_enum(Qt, 'LeftDockWidgetArea', 'DockWidgetArea')
-RIGHT_DOCK = get_enum(Qt, 'RightDockWidgetArea', 'DockWidgetArea')
-ALIGN_CENTER = get_enum(Qt, 'AlignCenter', 'AlignmentFlag')
-ECHO_PASSWORD = get_enum(QLineEdit, 'Password', 'EchoMode')
-ITEM_EDITABLE = get_enum(Qt, 'ItemIsEditable', 'ItemFlag')
-RESIZE_STRETCH = get_enum(QHeaderView, 'Stretch', 'ResizeMode')
+LEFT_DOCK = get_enum(Qt, 'LeftDockWidgetArea', 'DockWidgetArea', 1)
+RIGHT_DOCK = get_enum(Qt, 'RightDockWidgetArea', 'DockWidgetArea', 2)
+ALIGN_CENTER = get_enum(Qt, 'AlignCenter', 'AlignmentFlag', 132)
+ECHO_PASSWORD = get_enum(QLineEdit, 'Password', 'EchoMode', 2)
+ITEM_EDITABLE = get_enum(Qt, 'ItemIsEditable', 'ItemFlag', 1)
+RESIZE_STRETCH = get_enum(QHeaderView, 'Stretch', 'ResizeMode', 1)
 
 # Try importing Matplotlib for embedding inline charts inside PyQt
 try:
